@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "node", // 또는 "nodenext",
+    "module": "esnext",
+    "target": "es2020",
+    // Module '".../node_modules/@types/express/index"' can only be default-imported using the 'allowSyntheticDefaultImports' flag. 에러 처리
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+    // 위 두줄 에러처리
+  }
+}
