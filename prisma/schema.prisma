@@ -1,0 +1,152 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// 사용자 모델
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nickname  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  // 관계
+  posts        Post[]
+  comments     Comment[]
+  quizzes      Quiz[]        @relation("QuizCreator")
+  quizResults  QuizResult[]
+  userStats    UserStats?
+
+  @@map("users")
+}
+
+// 역할 enum
+enum Role {
+  USER
+  ADMIN
+}
+
+// 게시글 모델
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(200)  // 길이 제한
+  content   String   @db.Text
+  imageUrls String[] @default([])  // Tiptap 에디터의 이미지 URL 배열
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 관계
+  comments Comment[]
+
+  @@map("posts")
+}
+
+// 댓글 모델
+model Comment {
+  id           Int      @id @default(autoincrement())
+  nickname     String
+  password     String   // 암호화되어 저장
+  profileImage String
+  content      String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 관계
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("comments")
+}
+
+// 비밀번호 재설정 토큰 모델
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  email     String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// 퀴즈 난이도 enum
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// 퀴즈 모델
+model Quiz {
+  id           Int        @id @default(autoincrement())
+  question     String     @db.VarChar(1000)
+  answer       String     @db.VarChar(500)
+  timeLimit    Int
+  category     String     @db.VarChar(100)
+  difficulty   Difficulty
+  playCount    Int        @default(0)
+  correctCount Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  // 관계
+  createdById String
+  createdBy   User         @relation("QuizCreator", fields: [createdById], references: [id])
+  results     QuizResult[]
+
+  @@map("quizzes")
+}
+
+// 퀴즈 결과 모델
+model QuizResult {
+  id         Int      @id @default(autoincrement())
+  userAnswer String   @db.VarChar(500)
+  isCorrect  Boolean
+  timeTaken  Int
+  answeredAt DateTime @default(now())
+
+  // 관계
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("quiz_results")
+}
+
+// 사용자 통계 모델
+model UserStats {
+  id              Int @id @default(autoincrement())
+  totalPlayed     Int @default(0)
+  correctAnswers  Int @default(0)
+  currentStreak   Int @default(0)
+  bestStreak      Int @default(0)
+  totalTimeSpent  Int @default(0)
+
+  // 관계 (One-to-One)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("user_stats")
+}
+
+// 임시 게시글 모델 (단일 레코드)
+model TemporaryPost {
+  id        Int      @id @default(1) // 고정 ID
+  title     String?
+  content   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("temporary_posts")
+}
