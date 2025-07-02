@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
@@ -38,9 +37,9 @@ enum Role {
 // 게시글 모델
 model Post {
   id        Int      @id @default(autoincrement())
-  title     String   @db.VarChar(200)  // 길이 제한
+  title     String   @db.VarChar(200)  
   content   String   @db.Text
-  imageUrls String[] @default([])  // Tiptap 에디터의 이미지 URL 배열
+  imageUrls String[] @default([])  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -54,7 +53,7 @@ model Post {
 model Comment {
   id           Int      @id @default(autoincrement())
   nickname     String
-  password     String   // 암호화되어 저장
+  password     String   
   profileImage String
   content      String   @db.Text
   createdAt    DateTime @default(now())
@@ -143,9 +142,10 @@ model UserStats {
 
 // 임시 게시글 모델 (단일 레코드)
 model TemporaryPost {
-  id        Int      @id @default(1) // 고정 ID
+  id        String   @id 
   title     String?
   content   String?  @db.Text
+  imageUrls String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
