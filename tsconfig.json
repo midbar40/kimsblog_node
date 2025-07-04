@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./",
     "moduleResolution": "node", // 또는 "nodenext",
     "module": "esnext",
     "target": "es2020",
@@ -7,6 +9,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
     // "strict": true
-    // 위 두줄 에러처리
-  }
+  },
+  "include": ["*.ts", "src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
