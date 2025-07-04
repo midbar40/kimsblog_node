@@ -47,7 +47,7 @@ RUN chown -R appuser:nodejs /app
 USER appuser
 
 # Express 서버 포트
-EXPOSE 5000
+EXPOSE 3000
 
 # 헬스체크 추가 (Koyeb 필수)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
