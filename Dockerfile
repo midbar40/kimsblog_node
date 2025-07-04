@@ -1,7 +1,8 @@
 # Node.js 22.16.0 버전 사용
-FROM node:22.16.0-alpine AS builder
+FROM node:22.16.0-alpine
 
 WORKDIR /app
+
 
 # 패키지 파일들 먼저 복사 (의존성 캐싱을 위해)
 COPY package*.json ./
@@ -54,4 +55,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
 # npm start 실행 (node dist/app.js)
-ENTRYPOINT ["npm", "start"]
+ENTRYPOINT ["npm", "tsx","start"]
