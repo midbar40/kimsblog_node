@@ -1,5 +1,5 @@
 const corsOptions = {
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: ["http://localhost:5173", "https://kimsblog.vercel.app"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   credentials: true,
