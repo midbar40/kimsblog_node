@@ -23,6 +23,9 @@ FROM node:22.16.0-alpine
 
 WORKDIR /app
 
+# curl 설치 (헬스체크용)
+RUN apk add --no-cache curl
+
 # 프로덕션 의존성만 설치
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
@@ -45,6 +48,10 @@ USER appuser
 
 # Express 서버 포트
 EXPOSE 5000
+
+# 헬스체크 추가 (Koyeb 필수)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
 
 # npm start 실행 (node dist/app.js)
 ENTRYPOINT ["npm", "start"]
