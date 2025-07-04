@@ -12,8 +12,15 @@ COPY package*.json ./
 # tsconfig.json 복사 (tsx가 TypeScript 설정을 참조할 수 있음)
 COPY tsconfig.json ./
 
+# Prisma 스키마 복사 (prisma generate를 위해 필요)
+COPY prisma/ ./prisma/
+
 # 모든 의존성 설치
 RUN npm ci
+
+# Prisma 클라이언트 생성 (기존 DB 스키마 기반)
+# 주의: db pull은 하지 않고 generate만 실행 (기존 schema.prisma 사용)
+RUN npx prisma generate
 
 # 소스 코드 전체 복사
 COPY . .
