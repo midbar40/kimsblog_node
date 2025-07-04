@@ -10,7 +10,7 @@ import {
 // 모든 게시글 조회
 export const getAllPosts = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = 0, limit = 10, search } = req.query;
 
     const posts = await getPostsService({
       page: parseInt(page),
@@ -40,7 +40,7 @@ export const getAllPosts = async (req, res) => {
 export const getPostById = async (req, res) => {
   try {
     const { id } = req.params;
-    const post = await getPostByIdService(parseInt(id));
+    const post = await getPostByIdService(id);
 
     if (!post) {
       return res.status(404).json({
@@ -120,7 +120,7 @@ export const updatePost = async (req, res) => {
     const { title, content, imageUrls } = req.body;
 
     // 게시글 존재 확인
-    const existingPost = await getPostByIdService(parseInt(id));
+    const existingPost = await getPostByIdService(id);
     if (!existingPost) {
       return res.status(404).json({
         success: false,
@@ -142,7 +142,7 @@ export const updatePost = async (req, res) => {
       image_urls: JSON.stringify(imageUrls || []),
     };
 
-    const updatedPost = await updatePostService(parseInt(id), updateData);
+    const updatedPost = await updatePostService(id, updateData);
 
     res.json({
       success: true,
@@ -165,7 +165,7 @@ export const deletePost = async (req, res) => {
     const { id } = req.params;
 
     // 게시글 존재 확인
-    const existingPost = await getPostByIdService(parseInt(id));
+    const existingPost = await getPostByIdService(id);
     if (!existingPost) {
       return res.status(404).json({
         success: false,
@@ -173,7 +173,7 @@ export const deletePost = async (req, res) => {
       });
     }
 
-    await deletePostService(parseInt(id));
+    await deletePostService(id);
 
     res.json({
       success: true,

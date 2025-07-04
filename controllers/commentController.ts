@@ -5,9 +5,25 @@ import {
   updateComment as updateCommentService,
   deleteComment as deleteCommentService,
   getCommentCountByPostId as getCommentCountByIdService,
-  getCommentCountByPostId,
-  getCommentById,
+  getCommentById as getCommentByIdService,
 } from "../services/commentService";
+
+// 댓글 하나만 가져오기
+export const getCommentById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const comment = await getCommentByIdService(id); // ✅ Service 호출
+    res.json({
+      success: true,
+      data: comment,
+    });
+  } catch (error: any) {
+    res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 // 특정게시글의 댓글 조회
 export const getCommentsByPost = async (req, res) => {
@@ -15,13 +31,14 @@ export const getCommentsByPost = async (req, res) => {
     const { postId } = req.params;
     const comments = await getCommentsByPostId(parseInt(postId));
 
-    res.json({
+    res.status(200).json({
       success: true,
-      data: comments,
+      data: comments || [],
+      count: comments?.length || 0,
     });
   } catch (error) {
     console.error("댓글 조회 에러: ", error);
-    req.status(500).json({
+    res.status(500).json({
       success: false,
       message: "댓글을 불러오는데 실패했습니다.",
       error: error.message,
@@ -50,7 +67,7 @@ export const createComment = async (req, res) => {
     const commentData = {
       postId: parseInt(postId),
       nickname,
-      hashedPassword,
+      password: hashedPassword,
       profileImage: profileImage || "/default-profile.png",
       content,
     };
@@ -78,7 +95,7 @@ export const updateComment = async (req, res) => {
     const { commentId } = req.params;
     const { content, password } = req.body;
 
-    if (!content || password) {
+    if (!content || !password) {
       return res.status(400).json({
         success: false,
         message: "내용과 비밀번호는 필수입니다",
@@ -86,7 +103,7 @@ export const updateComment = async (req, res) => {
     }
 
     // 기존 댓글 조회
-    const existingComment = await getCommentById(parseInt(commentId));
+    const existingComment = await getCommentByIdService(parseInt(commentId));
     if (!existingComment) {
       return res.status(404).json({
         success: false,
@@ -141,7 +158,7 @@ export const deleteComment = async (req, res) => {
     }
 
     // 기존 댓글 조회 (비밀번호 검증용)
-    const existingComment = await getCommentById(parseInt(commentId));
+    const existingComment = await getCommentByIdService(parseInt(commentId));
     if (!existingComment) {
       return res.status(404).json({
         success: false,

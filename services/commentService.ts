@@ -4,14 +4,14 @@ import { prisma } from "../db/dbConnect";
 export const getCommentsByPostId = async (postId) => {
   const comments = await prisma.comment.findMany({
     where: { postId: postId },
-    orderBy: { created_at: "asc" },
+    orderBy: { createdAt: "asc" },
     select: {
       id: true,
       nickname: true,
       profileImage: true,
       content: true,
-      created_at: true,
-      updated_at: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
   return comments;
@@ -20,24 +20,31 @@ export const getCommentsByPostId = async (postId) => {
 // 특정 댓글 하나만 조회
 export const getCommentById = async (commentId) => {
   const comment = await prisma.comment.findUnique({
-    where: { commentId },
+    where: { id: commentId },
     select: {
       id: true,
       password: true,
       profileImage: true,
       content: true,
       postId: true,
-      created_at: true,
-      updated_at: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
   return comment;
 };
 
 // 댓글 생성
-export const createComment = async (commentData) => {
+export const createComment = async (commentData: {
+  postId: number;
+  userId?: string; // 로그인한 사용자 (선택사항)
+  nickname: string;
+  password: string;
+  content: string;
+  profileImage?: string;
+}) => {
   const { postId, nickname, password, profileImage, content } = commentData;
-
+  console.log("게시글", postId);
   // 게시글 존재 확인
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post) {
@@ -46,19 +53,21 @@ export const createComment = async (commentData) => {
 
   const newComment = await prisma.comment.create({
     data: {
-      nickname,
-      password,
-      profileImage,
-      content,
-      postId,
+      postId: commentData.postId,
+      userId: commentData.userId || null, // ✅ 로그인 사용자 또는 null
+      nickname: commentData.nickname.trim(),
+      password: password,
+      content: commentData.content.trim(),
+      profileImage: commentData.profileImage || null,
     },
     select: {
       id: true,
       nickname: true,
       profileImage: true,
       content: true,
-      created_at: true,
-      updated_at: true,
+      createdAt: true,
+      updatedAt: true,
+      userId: true,
     },
   });
   return newComment;
@@ -82,15 +91,15 @@ export const updateComment = async (commentId, updateData) => {
     where: { id: commentId },
     data: {
       content,
-      updated_at: new Date(),
+      updatedAt: new Date(),
     },
     select: {
       id: true,
       nickname: true,
       profileImage: true,
       content: true,
-      created_at: true,
-      updated_at: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
   return updatedComment;

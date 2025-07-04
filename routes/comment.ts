@@ -4,20 +4,18 @@ import {
   createComment,
   deleteComment,
   updateComment,
+  getCommentById,
 } from "../controllers/commentController";
 
 const router = express.Router();
 
-// 특정 게시글의 댓글 조회
-router.get("/posts/:postId/comments", getCommentsByPost);
-
-// 댓글 생성
-router.post("/posts/:id/comments", createComment);
+// 개별 댓글 조회
+router.get("/:commentId", getCommentById);
 
 // 댓글 수정
-router.put("/comments/:commentId", updateComment);
+router.put("/:commentId", updateComment);
 
 // 댓글 삭제
-router.delete("/comments/:commentId", deleteComment);
+router.delete("/:commentId", deleteComment);
 
 export default router;

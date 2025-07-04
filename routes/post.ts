@@ -7,6 +7,10 @@ import {
   deletePost,
   searchPosts,
 } from "../controllers/postController.js";
+import {
+  getCommentsByPost,
+  createComment,
+} from "../controllers/commentController.js";
 import { authMiddleware } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -15,6 +19,11 @@ const router = express.Router();
 router.get("/", getAllPosts); // 모든 게시글 조회
 router.get("/search/:keyword", searchPosts); // 게시글 검색
 router.get("/:id", getPostById); // 특정 게시글 조회
+
+// 특정 게시글의 댓글 조회
+router.get("/:postId/comments", getCommentsByPost);
+// 댓글 생성
+router.post("/:postId/comments", createComment);
 
 // 인증 필요 라우트
 router.post("/", authMiddleware, createPost); // 게시글 생성

@@ -4,34 +4,44 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-
-// 사용자 모델
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  nickname  String
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-
-  // 관계
-  posts        Post[]
-  comments     Comment[]
-  quizzes      Quiz[]        @relation("QuizCreator")
-  quizResults  QuizResult[]
-  userStats    UserStats?
-
-  @@map("users")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // 역할 enum
 enum Role {
   USER
   ADMIN
+  MODERATOR
+}
+
+// 퀴즈 난이도 enum
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// 사용자 모델 (Supabase 연동)
+model User {
+  id        String   @id @db.Uuid // Supabase auth.users.id와 연결
+  email     String   @unique
+  nickname  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // password 필드 제거됨 - Supabase auth.users에서 관리
+
+  // 관계
+  posts         Post[]
+  comments      Comment[]
+  quizzes       Quiz[]        @relation("QuizCreator")
+  quizResults   QuizResult[]
+  userStats     UserStats?
+  temporaryPost TemporaryPost?
+
+  @@map("users")
 }
 
 // 게시글 모델
@@ -39,9 +49,13 @@ model Post {
   id        Int      @id @default(autoincrement())
   title     String   @db.VarChar(200)  
   content   String   @db.Text
-  imageUrls String[] @default([])  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  imageUrls String[] @map("image_urls")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 작성자 정보 (관리자 게시글용)
+  authorId String? @map("author_id") @db.Uuid
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   // 관계
   comments Comment[]
@@ -52,39 +66,20 @@ model Post {
 // 댓글 모델
 model Comment {
   id           Int      @id @default(autoincrement())
-  nickname     String
-  password     String   
-  profileImage String
+  nickname     String   @db.VarChar(50)
+  password     String?  @db.VarChar(100) // ✅ 옵셔널 (로그인시 불필요)
+  profileImage String?  @map("profile_image") @db.VarChar(500)
   content      String   @db.Text
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   // 관계
-  postId String
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  postId Int     @map("post_id")
+  post   Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String? @map("user_id") @db.Uuid  // ✅ 옵셔널 (비회원 허용)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("comments")
-}
-
-// 비밀번호 재설정 토큰 모델
-model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  email     String
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@map("password_reset_tokens")
-}
-
-// 퀴즈 난이도 enum
-enum Difficulty {
-  EASY
-  MEDIUM
-  HARD
 }
 
 // 퀴즈 모델
@@ -92,16 +87,17 @@ model Quiz {
   id           Int        @id @default(autoincrement())
   question     String     @db.VarChar(1000)
   answer       String     @db.VarChar(500)
-  timeLimit    Int
+  timeLimit    Int        @map("time_limit") // 제한 시간 (초)
   category     String     @db.VarChar(100)
   difficulty   Difficulty
-  playCount    Int        @default(0)
-  correctCount Int        @default(0)
-  createdAt    DateTime   @default(now())
+  playCount    Int        @default(0) @map("play_count")
+  correctCount Int        @default(0) @map("correct_count")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  // 관계
-  createdById String
-  createdBy   User         @relation("QuizCreator", fields: [createdById], references: [id])
+  // 관계 - UUID 타입으로 수정
+  createdById String       @map("created_by_id") @db.Uuid
+  createdBy   User         @relation("QuizCreator", fields: [createdById], references: [id], onDelete: Cascade)
   results     QuizResult[]
 
   @@map("quizzes")
@@ -110,44 +106,62 @@ model Quiz {
 // 퀴즈 결과 모델
 model QuizResult {
   id         Int      @id @default(autoincrement())
-  userAnswer String   @db.VarChar(500)
-  isCorrect  Boolean
-  timeTaken  Int
-  answeredAt DateTime @default(now())
+  userAnswer String   @map("user_answer") @db.VarChar(500)
+  isCorrect  Boolean  @map("is_correct")
+  timeTaken  Int      @map("time_taken") // 소요 시간 (초)
+  answeredAt DateTime @default(now()) @map("answered_at")
 
-  // 관계
-  quizId String
-  quiz   Quiz   @relation(fields: [quizId], references: [id])
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  // 관계 - userId를 UUID 타입으로 수정
+  quizId Int    @map("quiz_id")
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("quiz_results")
 }
 
 // 사용자 통계 모델
 model UserStats {
-  id              Int @id @default(autoincrement())
-  totalPlayed     Int @default(0)
-  correctAnswers  Int @default(0)
-  currentStreak   Int @default(0)
-  bestStreak      Int @default(0)
-  totalTimeSpent  Int @default(0)
+  id             Int      @id @default(autoincrement())
+  totalPlayed    Int      @default(0) @map("total_played")
+  correctAnswers Int      @default(0) @map("correct_answers")
+  currentStreak  Int      @default(0) @map("current_streak")
+  bestStreak     Int      @default(0) @map("best_streak")
+  totalTimeSpent Int      @default(0) @map("total_time_spent") // 총 소요 시간 (초)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  // 관계 (One-to-One)
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id])
+  // 관계 (One-to-One) - userId를 UUID 타입으로 수정
+  userId String @unique @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_stats")
 }
 
-// 임시 게시글 모델 (단일 레코드)
+// 임시저장 모델
 model TemporaryPost {
-  id        String   @id 
-  title     String?
+  id        Int      @id @default(1) // 고정 ID (단일 임시저장)
+  title     String?  @db.VarChar(200)
   content   String?  @db.Text
-  imageUrls String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  imageUrls String[] @map("image_urls")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // 사용자별 임시저장 (선택적 - 로그인한 사용자만)
+  userId String? @unique @map("user_id") @db.Uuid
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("temporary_posts")
+}
+
+// 비밀번호 재설정 토큰 모델 (Supabase 사용 시 불필요하지만 호환성을 위해 유지)
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique @db.VarChar(255)
+  email     String   @db.VarChar(100)
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
 }
